@@ -1,4 +1,4 @@
-import { createApp, appNewGame, appClick, appDragStart, appDragMove, appDragEnd, appCancelInteraction, appUpdate, appAutoComplete } from "./app-state"
+import { createApp, appNewGame, appClick, appDragStart, appDragMove, appDragEnd, appCancelInteraction, appUpdate, appAutoComplete, appIsWon } from "./app-state"
 import { Pile, SolitaireState } from "./game"
 import { abs, cos, PI, sin, sqrt } from "std/math"
 import {
@@ -8,6 +8,7 @@ import {
   Color,
   CullMode,
   Depth,
+  Fireworks,
   GameEventKind,
   GameRenderMode,
   Key,
@@ -890,6 +891,8 @@ function runSolitaire(): Result<void, string> {
   pointer := PointerState {}
   renderScene := createCardRenderScene(app.surface, atlas)
   restartButton := RestartButton {}
+  fireworks := Fireworks(app.surface)
+  let wasWon = appIsWon(game)
   autoCamera := AutoCamera {}
   applyAutoCameraFrame(
     autoCamera,
@@ -906,6 +909,8 @@ function runSolitaire(): Result<void, string> {
   })
   app.key(Key.N).onPressed((): void => {
     appNewGame(game)
+    fireworks.clear()
+    wasWon = false
     app.requestRender()
   })
   app.key(Key.A).onPressed((): void => {
@@ -956,6 +961,8 @@ function runSolitaire(): Result<void, string> {
     if pointer.uiPress {
       if releaseRestartButton(restartButton, surfacePoint) {
         appNewGame(game)
+        fireworks.clear()
+        wasWon = false
         app.requestRender()
       }
       pointer.down = false
@@ -990,10 +997,16 @@ function runSolitaire(): Result<void, string> {
 
   app.onRender((renderer): void => {
     animating := appUpdate(game, 1.0f / 60.0f)
-    buttonAnimating := updateRestartButton(restartButton, 1.0f / 60.0f)
-    updateCardRenderScene(renderScene, game.state)
     width := double(app.surface.width())
     height := double(app.surface.height())
+    won := appIsWon(game)
+    if won && !wasWon {
+      fireworks.start(width, height)
+    }
+    wasWon = won
+    fireworksAnimating := fireworks.update(1.0 / 60.0)
+    buttonAnimating := updateRestartButton(restartButton, 1.0f / 60.0f)
+    updateCardRenderScene(renderScene, game.state)
     targetFrame := computeIdealAutoFrame(game.state, width, height)
     cameraMoving := updateAutoCamera(autoCamera, targetFrame, 1.0 / 60.0)
     camera := solitaireCamera(autoCamera, width, height)
@@ -1038,9 +1051,10 @@ function runSolitaire(): Result<void, string> {
       },
       (pass): void => {
         drawSimpleMesh(pass, createRestartButtonMesh(app.surface, restartButton))
+        fireworks.draw(pass)
       },
     )
-    if animating || buttonAnimating || cameraMoving {
+    if animating || buttonAnimating || cameraMoving || fireworksAnimating {
       app.requestRender()
     }
   })
