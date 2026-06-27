@@ -1,0 +1,20 @@
+{
+  "name": "solitaire-sample",
+  "version": "0.1.0",
+  "license": "ISC",
+  "target": "macos-app",
+  "executable": "DoofSolitaire",
+  "title": "Doof Solitaire",
+  "icon": "app-icon.png",
+  "resources": ["images"],
+  "build": {
+    "macosApp": {
+      "bundleId": "dev.doof.solitaire",
+      "category": "public.app-category.games"
+    },
+    "iosApp": {
+      "bundleId": "doof.Solitaire",
+      "minimumDeploymentTarget": "16.0"
+    }
+  }
+}
