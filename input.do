@@ -11,6 +11,9 @@ import {
   startMoveAnim
 } from "./rules"
 
+const DRAW_PILE_HIT_PAD_X: float = 12.0f
+const DRAW_PILE_HIT_PAD_Z: float = 14.0f
+
 function absFloat(value: float): float {
   return if value < 0.0f then -value else value
 }
@@ -29,6 +32,27 @@ function pointInCard(px: float, pz: float, card: Card): bool {
   halfH := card.height * 0.5f
   return px >= card.x - halfW && px <= card.x + halfW &&
          pz >= card.z - halfH && pz <= card.z + halfH
+}
+
+function pointInPaddedCard(px: float, pz: float, card: Card, padX: float, padZ: float): bool {
+  halfW := card.width * 0.5f + padX
+  halfH := card.height * 0.5f + padZ
+  return px >= card.x - halfW && px <= card.x + halfW &&
+         pz >= card.z - halfH && pz <= card.z + halfH
+}
+
+function pointInPaddedPileSlot(
+  px: float,
+  pz: float,
+  centerX: float,
+  centerZ: float,
+  padX: float,
+  padZ: float
+): bool {
+  halfW := 80.0f * 0.5f + padX
+  halfH := 120.0f * 0.5f + padZ
+  return px >= centerX - halfW && px <= centerX + halfW &&
+         pz >= centerZ - halfH && pz <= centerZ + halfH
 }
 
 // Find which card (if any) is at the given world coordinates.
@@ -65,7 +89,7 @@ export function findCardAtPosition(state: SolitaireState, worldX: float, worldZ:
     cardIdx := state.waste.topCardIndex()
     if cardIdx < 0 || cardIdx >= state.cards.length { return hit }
     card := state.cards[cardIdx]
-    if pointInCard(worldX, worldZ, card) {
+    if pointInPaddedCard(worldX, worldZ, card, DRAW_PILE_HIT_PAD_X, DRAW_PILE_HIT_PAD_Z) {
       hit.pileType = 1
       hit.pileIndex = 0
       hit.cardIndex = state.waste.cardIndices.length - 1
@@ -96,7 +120,7 @@ export function findCardAtPosition(state: SolitaireState, worldX: float, worldZ:
     cardIdx := state.stock.topCardIndex()
     if cardIdx < 0 || cardIdx >= state.cards.length { return hit }
     card := state.cards[cardIdx]
-    if pointInCard(worldX, worldZ, card) {
+    if pointInPaddedCard(worldX, worldZ, card, DRAW_PILE_HIT_PAD_X, DRAW_PILE_HIT_PAD_Z) {
       hit.pileType = 3
       hit.pileIndex = 0
       hit.cardIndex = 0
@@ -105,10 +129,14 @@ export function findCardAtPosition(state: SolitaireState, worldX: float, worldZ:
     }
   } else {
     // Empty stock — click to recycle waste
-    halfW := 80.0f * 0.5f
-    halfH := 120.0f * 0.5f
-    if worldX >= state.stock.x - halfW && worldX <= state.stock.x + halfW &&
-       worldZ >= state.stock.z - halfH && worldZ <= state.stock.z + halfH {
+    if pointInPaddedPileSlot(
+      worldX,
+      worldZ,
+      state.stock.x,
+      state.stock.z,
+      DRAW_PILE_HIT_PAD_X,
+      DRAW_PILE_HIT_PAD_Z,
+    ) {
       hit.pileType = 3
       hit.pileIndex = 0
       hit.cardIndex = 0

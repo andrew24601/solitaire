@@ -8,6 +8,10 @@ import {
 const PI: float = 3.14159265358979323846f
 const MOVE_BASE_LIFT: float = 18.0f
 const MOVE_ARC_LIFT: float = 24.0f
+const MOVE_SINGLE_DURATION: float = 0.20f
+const MOVE_SHORT_CHAIN_DURATION: float = 0.16f
+const MOVE_MEDIUM_CHAIN_DURATION: float = 0.12f
+const MOVE_LONG_CHAIN_DURATION: float = 0.09f
 
 // --- Move validation ---
 
@@ -148,7 +152,48 @@ export function startMoveAnim(
   state.moveStartZ = startZ
   state.moveEndX = fPile.x
   state.moveEndZ = fPile.z
+  state.moveAnimDuration = autoMoveDuration(state)
   state.cards[cardIdx].currentLift = MOVE_BASE_LIFT
+}
+
+function canAutoMoveCardToAnyFoundation(state: SolitaireState, cardIdx: int): bool {
+  if cardIdx < 0 || cardIdx >= state.cards.length { return false }
+  card := state.cardInfo[cardIdx]
+
+  for i of 0..3 {
+    fPile := state.foundation(i)
+    if canPlaceOnFoundation(card, i, fPile, state.cardInfo) {
+      return true
+    }
+  }
+
+  return false
+}
+
+function countAutoMoveCandidates(state: SolitaireState): int {
+  let count = 0
+
+  if !state.waste.isEmpty() && canAutoMoveCardToAnyFoundation(state, state.waste.topCardIndex()) {
+    count += 1
+  }
+
+  for t of 0..6 {
+    tab := state.tableau(t)
+    if tab.isEmpty() { continue }
+    if canAutoMoveCardToAnyFoundation(state, tab.topCardIndex()) {
+      count += 1
+    }
+  }
+
+  return count
+}
+
+function autoMoveDuration(state: SolitaireState): float {
+  pending := countAutoMoveCandidates(state)
+  if pending >= 8 { return MOVE_LONG_CHAIN_DURATION }
+  if pending >= 4 { return MOVE_MEDIUM_CHAIN_DURATION }
+  if pending >= 2 { return MOVE_SHORT_CHAIN_DURATION }
+  return MOVE_SINGLE_DURATION
 }
 
 // Try to auto-move one card to a foundation. Called repeatedly after each
