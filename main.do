@@ -1,6 +1,6 @@
 import { createApp, appNewGame, appClick, appDragStart, appDragMove, appDragEnd, appCancelInteraction, appUpdate, appAutoComplete } from "./app-state"
 import { Pile, SolitaireState } from "./game"
-import { abs, cos, PI, sin, sqrt, tan } from "std/math"
+import { abs, cos, PI, sin, sqrt } from "std/math"
 import {
   Blend,
   Camera,
@@ -34,11 +34,19 @@ const CARD_ROWS: int = 4
 const CARD_WIDTH: double = 80.0
 const CARD_HEIGHT: double = 120.0
 const CLICK_THRESHOLD: double = 5.0
-const VIEW_MARGIN: double = 48.0
 const FOV_Y: double = 65.0 * (PI / 180.0)
 const CAMERA_DISTANCE: double = 700.0
 const CAMERA_NEAR: double = 400.0
 const CAMERA_FAR: double = 950.0
+const AUTO_CAMERA_MIN_PITCH: double = 1.0471976
+const AUTO_CAMERA_MAX_PITCH: double = 1.4765485
+const AUTO_CAMERA_MIN_DEPTH: double = 400.0
+const AUTO_CAMERA_MAX_DEPTH: double = 600.0
+const AUTO_CAMERA_VIEWPORT_USAGE: double = 0.96
+const AUTO_CAMERA_TOP_PADDING: double = 0.15
+const AUTO_CAMERA_MIN_SCALE: double = 0.5
+const AUTO_CAMERA_MAX_SCALE: double = 3.0
+const AUTO_CAMERA_SMOOTH_TIME: double = 0.28
 const DRAW_LAYER_STEP: double = 0.35
 const FLIP_LAYER_BONUS: int = 4
 const DRAG_LAYER_START: int = 32
@@ -74,23 +82,39 @@ class BoardBounds {
   maxZ: double = 0.0
 }
 
-class BoardView {
-  centerX: double = 0.0
-  centerZ: double = 0.0
-  scale: double = 1.0
-  screenWidth: double = 1.0
-  screenHeight: double = 1.0
-  minZ: double = 0.0
-  maxZ: double = 1.0
-}
-
-class CameraFrame {
+class AutoCameraFrame {
   targetX: double = 0.0
   targetY: double = 0.0
   targetZ: double = 0.0
-  eyeX: double = 0.0
-  eyeY: double = 0.0
-  eyeZ: double = 0.0
+  distance: double = 700.0
+  pitch: double = 1.28
+  scale: double = 1.45
+  panX: double = 0.0
+  panY: double = -0.08
+}
+
+class AutoCamera {
+  targetX: double = 0.0
+  targetY: double = 0.0
+  targetZ: double = 0.0
+  distance: double = 700.0
+  pitch: double = 1.28
+  frameScale: double = 1.45
+  framePanX: double = 0.0
+  framePanY: double = -0.08
+  initialized: bool = false
+
+  targetVelocityX: double = 0.0
+  targetVelocityZ: double = 0.0
+  pitchVelocity: double = 0.0
+  scaleVelocity: double = 0.0
+  panXVelocity: double = 0.0
+  panYVelocity: double = 0.0
+}
+
+class SmoothResult {
+  value: double = 0.0
+  velocity: double = 0.0
 }
 
 class RenderItem {
@@ -135,12 +159,26 @@ function includeCard(bounds: BoardBounds, x: float, z: float): void {
 }
 
 function computeBounds(state: SolitaireState): BoardBounds {
-  return BoardBounds {
+  bounds := BoardBounds {
     minX: -470.0,
     maxX: 260.0,
     minZ: -130.0,
     maxZ: 300.0,
   }
+  includeCard(bounds, state.stock.x, state.stock.z)
+  includeCard(bounds, state.waste.x, state.waste.z)
+  for i of 0..3 {
+    pile := state.foundation(i)
+    includeCard(bounds, pile.x, pile.z)
+  }
+  for i of 0..6 {
+    pile := state.tableau(i)
+    includeCard(bounds, pile.x, pile.z)
+  }
+  for card of state.cards {
+    includeCard(bounds, card.x, card.z)
+  }
+  return bounds
 }
 
 function minDouble(a: double, b: double): double {
@@ -151,6 +189,10 @@ function clampDouble(value: double, minValue: double, maxValue: double): double 
   if value < minValue { return minValue }
   if value > maxValue { return maxValue }
   return value
+}
+
+function maxDouble(a: double, b: double): double {
+  return if a > b then a else b
 }
 
 function clampToSurface(point: Point, width: double, height: double): Point {
@@ -322,97 +364,6 @@ function createRestartButtonMesh(surface: GameSurface, button: RestartButton): S
   return builder.build(surface)
 }
 
-function computeView(state: SolitaireState, width: double, height: double): BoardView {
-  bounds := computeBounds(state)
-  boardWidth := bounds.maxX - bounds.minX
-  boardHeight := bounds.maxZ - bounds.minZ
-  usableWidth := if width > VIEW_MARGIN * 2.0 then width - VIEW_MARGIN * 2.0 else width
-  usableHeight := if height > VIEW_MARGIN * 2.0 then height - VIEW_MARGIN * 2.0 else height
-  scale := minDouble(usableWidth / boardWidth, usableHeight / boardHeight)
-  return BoardView {
-    centerX: (bounds.minX + bounds.maxX) * 0.5,
-    centerZ: (bounds.minZ + bounds.maxZ) * 0.5,
-    scale,
-    screenWidth: width,
-    screenHeight: height,
-    minZ: bounds.minZ,
-    maxZ: bounds.maxZ,
-  }
-}
-
-function screenToWorld(view: BoardView, x: double, y: double): Point {
-  return Point((x - view.screenWidth * 0.5) / view.scale + view.centerX, (y - view.screenHeight * 0.5) / view.scale + view.centerZ)
-}
-
-function cameraFrame(state: SolitaireState): CameraFrame {
-  bounds := computeBounds(state)
-  pitch := 1.28
-  targetX := (bounds.minX + bounds.maxX) * 0.5
-  targetY := 0.0
-  targetZ := (bounds.minZ + bounds.maxZ) * 0.5
-  return CameraFrame {
-    targetX,
-    targetY,
-    targetZ,
-    eyeX: targetX,
-    eyeY: CAMERA_DISTANCE * sin(pitch),
-    eyeZ: targetZ + CAMERA_DISTANCE * cos(pitch),
-  }
-}
-
-function normalizeLength(x: double, y: double, z: double): double {
-  len := sqrt(x * x + y * y + z * z)
-  return if len > 0.000001 then len else 1.0
-}
-
-function perspectiveScreenToWorld(state: SolitaireState, x: double, y: double, width: double, height: double): Point {
-  frame := cameraFrame(state)
-  aspect := width / height
-  let ndcX = (x / width) * 2.0 - 1.0
-  let ndcY = 1.0 - (y / height) * 2.0
-  ndcX = ndcX / 1.45
-  ndcY = (ndcY + 0.08) / 1.45
-
-  tanHalf := tan(FOV_Y * 0.5)
-  camX := ndcX * aspect * tanHalf
-  camY := ndcY * tanHalf
-  camZ := -1.0
-
-  let fx = frame.targetX - frame.eyeX
-  let fy = frame.targetY - frame.eyeY
-  let fz = frame.targetZ - frame.eyeZ
-  fl := normalizeLength(fx, fy, fz)
-  fx = fx / fl
-  fy = fy / fl
-  fz = fz / fl
-
-  let rx = fy * 0.0 - fz * 1.0
-  let ry = fz * 0.0 - fx * 0.0
-  let rz = fx * 1.0 - fy * 0.0
-  rl := normalizeLength(rx, ry, rz)
-  rx = rx / rl
-  ry = ry / rl
-  rz = rz / rl
-
-  ux := ry * fz - rz * fy
-  uy := rz * fx - rx * fz
-  uz := rx * fy - ry * fx
-
-  let dirX = rx * camX + ux * camY + fx
-  let dirY = ry * camX + uy * camY + fy
-  let dirZ = rz * camX + uz * camY + fz
-  dl := normalizeLength(dirX, dirY, dirZ)
-  dirX = dirX / dl
-  dirY = dirY / dl
-  dirZ = dirZ / dl
-
-  if abs(dirY) > 0.000001 {
-    t := -frame.eyeY / dirY
-    return Point(frame.eyeX + dirX * t, frame.eyeZ + dirZ * t)
-  }
-  return Point(frame.targetX, frame.targetZ)
-}
-
 function frameTransform(scale: double, panX: double, panY: double): Mat4 {
   return Mat4 {
     m00: scale, m01: 0.0, m02: 0.0, m03: panX,
@@ -420,6 +371,11 @@ function frameTransform(scale: double, panX: double, panY: double): Mat4 {
     m20: 0.0, m21: 0.0, m22: 1.0, m23: 0.0,
     m30: 0.0, m31: 0.0, m32: 0.0, m33: 1.0,
   }
+}
+
+function normalizeLength(x: double, y: double, z: double): double {
+  len := sqrt(x * x + y * y + z * z)
+  return if len > 0.000001 then len else 1.0
 }
 
 function lookAtMatrix(eyeX: double, eyeY: double, eyeZ: double, targetX: double, targetY: double, targetZ: double): Mat4 {
@@ -451,13 +407,199 @@ function lookAtMatrix(eyeX: double, eyeY: double, eyeZ: double, targetX: double,
   }
 }
 
-function solitaireCamera(state: SolitaireState, width: double, height: double): Camera {
-  frame := cameraFrame(state)
+function cameraViewMatrix(camera: AutoCamera): Mat4 {
+  eyeX := camera.targetX
+  eyeY := camera.targetY + camera.distance * sin(camera.pitch)
+  eyeZ := camera.targetZ + camera.distance * cos(camera.pitch)
+  return lookAtMatrix(eyeX, eyeY, eyeZ, camera.targetX, camera.targetY, camera.targetZ)
+}
+
+function autoCameraMvp(camera: AutoCamera, width: double, height: double): Mat4 {
   aspect := width / height
   proj := Mat4.perspective(FOV_Y, aspect, CAMERA_NEAR, CAMERA_FAR)
-  view := lookAtMatrix(frame.eyeX, frame.eyeY, frame.eyeZ, frame.targetX, frame.targetY, frame.targetZ)
-  framed := frameTransform(1.45, 0.0, -0.08).multiply(proj).multiply(view)
-  return Camera.identity().withView(framed)
+  view := cameraViewMatrix(camera)
+  return frameTransform(camera.frameScale, camera.framePanX, camera.framePanY).multiply(proj).multiply(view)
+}
+
+function autoCameraTargetMvp(frame: AutoCameraFrame, width: double, height: double): Mat4 {
+  scratch := AutoCamera {
+    targetX: frame.targetX,
+    targetY: frame.targetY,
+    targetZ: frame.targetZ,
+    distance: frame.distance,
+    pitch: frame.pitch,
+    frameScale: 1.0,
+    framePanX: 0.0,
+    framePanY: 0.0,
+    initialized: true,
+  }
+  return autoCameraMvp(scratch, width, height)
+}
+
+function smoothDamp(
+  current: double,
+  target: double,
+  velocity: double,
+  smoothTime: double,
+  deltaTime: double
+): SmoothResult {
+  st := if smoothTime < 0.0001 then 0.0001 else smoothTime
+  omega := 2.0 / st
+  x := omega * deltaTime
+  expFactor := 1.0 / (1.0 + x + 0.48 * x * x + 0.235 * x * x * x)
+
+  let change = current - target
+  originalTo := target
+  maxChange := 1000.0 * st
+  if change > maxChange { change = maxChange }
+  if change < -maxChange { change = -maxChange }
+
+  adjustedTarget := current - change
+  temp := (velocity + omega * change) * deltaTime
+  newVelocity := (velocity - omega * temp) * expFactor
+  let result = adjustedTarget + (change + temp) * expFactor
+
+  overshoot := (originalTo - current > 0.0) == (result > originalTo)
+  if overshoot {
+    result = originalTo
+    return SmoothResult { value: result, velocity: 0.0 }
+  }
+
+  return SmoothResult { value: result, velocity: newVelocity }
+}
+
+function applyAutoCameraFrame(camera: AutoCamera, frame: AutoCameraFrame): void {
+  camera.targetX = frame.targetX
+  camera.targetY = frame.targetY
+  camera.targetZ = frame.targetZ
+  camera.distance = frame.distance
+  camera.pitch = frame.pitch
+  camera.frameScale = frame.scale
+  camera.framePanX = frame.panX
+  camera.framePanY = frame.panY
+  camera.targetVelocityX = 0.0
+  camera.targetVelocityZ = 0.0
+  camera.pitchVelocity = 0.0
+  camera.scaleVelocity = 0.0
+  camera.panXVelocity = 0.0
+  camera.panYVelocity = 0.0
+  camera.initialized = true
+}
+
+function updateAutoCamera(camera: AutoCamera, target: AutoCameraFrame, deltaTime: double): bool {
+  if !camera.initialized {
+    applyAutoCameraFrame(camera, target)
+    return false
+  }
+
+  rTargetX := smoothDamp(camera.targetX, target.targetX, camera.targetVelocityX, AUTO_CAMERA_SMOOTH_TIME, deltaTime)
+  camera.targetX = rTargetX.value
+  camera.targetVelocityX = rTargetX.velocity
+
+  rTargetZ := smoothDamp(camera.targetZ, target.targetZ, camera.targetVelocityZ, AUTO_CAMERA_SMOOTH_TIME, deltaTime)
+  camera.targetZ = rTargetZ.value
+  camera.targetVelocityZ = rTargetZ.velocity
+
+  rPitch := smoothDamp(camera.pitch, target.pitch, camera.pitchVelocity, AUTO_CAMERA_SMOOTH_TIME, deltaTime)
+  camera.pitch = rPitch.value
+  camera.pitchVelocity = rPitch.velocity
+
+  rScale := smoothDamp(camera.frameScale, target.scale, camera.scaleVelocity, AUTO_CAMERA_SMOOTH_TIME, deltaTime)
+  camera.frameScale = rScale.value
+  camera.scaleVelocity = rScale.velocity
+
+  rPanX := smoothDamp(camera.framePanX, target.panX, camera.panXVelocity, AUTO_CAMERA_SMOOTH_TIME, deltaTime)
+  camera.framePanX = rPanX.value
+  camera.panXVelocity = rPanX.velocity
+
+  rPanY := smoothDamp(camera.framePanY, target.panY, camera.panYVelocity, AUTO_CAMERA_SMOOTH_TIME, deltaTime)
+  camera.framePanY = rPanY.value
+  camera.panYVelocity = rPanY.velocity
+  camera.distance = target.distance
+
+  dTargetX := camera.targetX - target.targetX
+  dTargetZ := camera.targetZ - target.targetZ
+  dPitch := camera.pitch - target.pitch
+  dScale := camera.frameScale - target.scale
+  dPanX := camera.framePanX - target.panX
+  dPanY := camera.framePanY - target.panY
+  distSq := dTargetX * dTargetX +
+    dTargetZ * dTargetZ +
+    dPitch * dPitch * 100.0 +
+    dScale * dScale +
+    dPanX * dPanX +
+    dPanY * dPanY
+
+  return distSq > 0.0001
+}
+
+function computeIdealAutoFrame(state: SolitaireState, width: double, height: double): AutoCameraFrame {
+  bounds := computeBounds(state)
+  frame := AutoCameraFrame {}
+
+  boundsDepth := bounds.maxZ - bounds.minZ
+  let t = (boundsDepth - AUTO_CAMERA_MIN_DEPTH) / (AUTO_CAMERA_MAX_DEPTH - AUTO_CAMERA_MIN_DEPTH)
+  t = clampDouble(t, 0.0, 1.0)
+  t = t * t * (3.0 - 2.0 * t)
+
+  frame.pitch = AUTO_CAMERA_MIN_PITCH + t * (AUTO_CAMERA_MAX_PITCH - AUTO_CAMERA_MIN_PITCH)
+  frame.targetX = (bounds.minX + bounds.maxX) * 0.5
+  frame.targetY = 0.0
+  frame.targetZ = (bounds.minZ + bounds.maxZ) * 0.5
+  frame.distance = CAMERA_DISTANCE
+
+  mvp := autoCameraTargetMvp(frame, width, height)
+  c0 := mvp.projectPoint(Point3(bounds.minX, 0.0, bounds.minZ))
+  c1 := mvp.projectPoint(Point3(bounds.maxX, 0.0, bounds.minZ))
+  c2 := mvp.projectPoint(Point3(bounds.minX, 0.0, bounds.maxZ))
+  c3 := mvp.projectPoint(Point3(bounds.maxX, 0.0, bounds.maxZ))
+
+  ndcMinX := minDouble(minDouble(c0.x, c1.x), minDouble(c2.x, c3.x))
+  ndcMaxX := maxDouble(maxDouble(c0.x, c1.x), maxDouble(c2.x, c3.x))
+  ndcMinY := minDouble(minDouble(c0.y, c1.y), minDouble(c2.y, c3.y))
+  ndcMaxY := maxDouble(maxDouble(c0.y, c1.y), maxDouble(c2.y, c3.y))
+
+  ndcWidth := maxDouble(ndcMaxX - ndcMinX, 0.0001)
+  ndcHeight := maxDouble(ndcMaxY - ndcMinY, 0.0001)
+  viewportSize := 2.0 * AUTO_CAMERA_VIEWPORT_USAGE
+  scaleX := viewportSize / ndcWidth
+  scaleY := (viewportSize - AUTO_CAMERA_TOP_PADDING) / ndcHeight
+  frame.scale = clampDouble(minDouble(scaleX, scaleY), AUTO_CAMERA_MIN_SCALE, AUTO_CAMERA_MAX_SCALE)
+
+  ndcCenterX := (ndcMinX + ndcMaxX) * 0.5
+  ndcCenterY := (ndcMinY + ndcMaxY) * 0.5
+  frame.panX = -ndcCenterX * frame.scale
+  frame.panY = -ndcCenterY * frame.scale - AUTO_CAMERA_TOP_PADDING * 0.5
+
+  return frame
+}
+
+function solitaireCamera(autoCamera: AutoCamera, width: double, height: double): Camera {
+  return Camera.identity().withView(autoCameraMvp(autoCamera, width, height))
+}
+
+function perspectiveScreenToWorld(camera: AutoCamera, x: double, y: double, width: double, height: double): Point {
+  ndcX := (x / width) * 2.0 - 1.0
+  ndcY := 1.0 - (y / height) * 2.0
+  inverseMvp := autoCameraMvp(camera, width, height).inverse()
+  near := inverseMvp.projectPoint(Point3(ndcX, ndcY, 0.0))
+  far := inverseMvp.projectPoint(Point3(ndcX, ndcY, 1.0))
+
+  let dirX = far.x - near.x
+  let dirY = far.y - near.y
+  let dirZ = far.z - near.z
+  len := normalizeLength(dirX, dirY, dirZ)
+  dirX = dirX / len
+  dirY = dirY / len
+  dirZ = dirZ / len
+
+  if abs(dirY) > 0.000001 {
+    t := -near.y / dirY
+    if t >= 0.0 {
+      return Point(near.x + dirX * t, near.z + dirZ * t)
+    }
+  }
+  return Point(camera.targetX, camera.targetZ)
 }
 
 function addDraggedCards(state: SolitaireState): Set<int> {
@@ -748,6 +890,11 @@ function runSolitaire(): Result<void, string> {
   pointer := PointerState {}
   renderScene := createCardRenderScene(app.surface, atlas)
   restartButton := RestartButton {}
+  autoCamera := AutoCamera {}
+  applyAutoCameraFrame(
+    autoCamera,
+    computeIdealAutoFrame(game.state, double(app.surface.width()), double(app.surface.height())),
+  )
   layoutRestartButton(app.surface, restartButton)
 
   app.key(Key.Escape).onPressed((): void => {
@@ -788,12 +935,12 @@ function runSolitaire(): Result<void, string> {
     if !pointer.down || pointer.uiPress { return }
     width := double(app.surface.width())
     height := double(app.surface.height())
-    world := perspectiveScreenToWorld(game.state, surfacePoint.x, surfacePoint.y, width, height)
+    world := perspectiveScreenToWorld(autoCamera, surfacePoint.x, surfacePoint.y, width, height)
     if !pointer.dragging {
       dx := surfacePoint.x - pointer.startX
       dy := surfacePoint.y - pointer.startY
       if dx * dx + dy * dy > CLICK_THRESHOLD * CLICK_THRESHOLD {
-        start := perspectiveScreenToWorld(game.state, pointer.startX, pointer.startY, width, height)
+        start := perspectiveScreenToWorld(autoCamera, pointer.startX, pointer.startY, width, height)
         appDragStart(game, float(start.x), float(start.y))
         pointer.dragging = true
         app.requestRender()
@@ -818,7 +965,7 @@ function runSolitaire(): Result<void, string> {
     }
     width := double(app.surface.width())
     height := double(app.surface.height())
-    world := perspectiveScreenToWorld(game.state, surfacePoint.x, surfacePoint.y, width, height)
+    world := perspectiveScreenToWorld(autoCamera, surfacePoint.x, surfacePoint.y, width, height)
     if pointer.dragging {
       appDragEnd(game, float(world.x), float(world.y))
       app.requestRender()
@@ -845,7 +992,11 @@ function runSolitaire(): Result<void, string> {
     animating := appUpdate(game, 1.0f / 60.0f)
     buttonAnimating := updateRestartButton(restartButton, 1.0f / 60.0f)
     updateCardRenderScene(renderScene, game.state)
-    camera := solitaireCamera(game.state, double(app.surface.width()), double(app.surface.height()))
+    width := double(app.surface.width())
+    height := double(app.surface.height())
+    targetFrame := computeIdealAutoFrame(game.state, width, height)
+    cameraMoving := updateAutoCamera(autoCamera, targetFrame, 1.0 / 60.0)
+    camera := solitaireCamera(autoCamera, width, height)
     renderer.pass(
       RenderPassDescriptor {
         camera,
@@ -889,7 +1040,7 @@ function runSolitaire(): Result<void, string> {
         drawSimpleMesh(pass, createRestartButtonMesh(app.surface, restartButton))
       },
     )
-    if animating || buttonAnimating {
+    if animating || buttonAnimating || cameraMoving {
       app.requestRender()
     }
   })
