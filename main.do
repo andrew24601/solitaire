@@ -10,7 +10,9 @@ import {
   Depth,
   Fireworks,
   GameEventKind,
+  GameAppOptions,
   GameRenderMode,
+  GameWindowMode,
   Key,
   Mat4,
   Point,
@@ -963,7 +965,15 @@ function updateCardRenderScene(scene: CardRenderScene, state: SolitaireState): v
 }
 
 function runSolitaire(): Result<void, string> {
-  app := initGameApp{ title: "Doof Solitaire", renderMode: GameRenderMode.Requested }
+  app := initGameApp{
+    title: "Doof Solitaire",
+    renderMode: GameRenderMode.Requested,
+    options: GameAppOptions {
+      windowMode: GameWindowMode.Windowed,
+      windowWidth: 1280,
+      windowHeight: 900,
+    },
+  }
   try atlas := app.loadTextureResource("images/card_atlas.png")
   game := createApp()
   pointer := PointerState {}
