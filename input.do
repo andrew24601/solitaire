@@ -159,8 +159,7 @@ export function handleClick(state: SolitaireState, worldX: float, worldZ: float)
 
   // Stock: deal a card
   if hit.pileType == 3 {
-    dealFromStock(state)
-    return true
+    return dealFromStock(state)
   }
 
   // Waste: try auto-move top card to foundation
@@ -291,22 +290,22 @@ export function handleDragMove(state: SolitaireState, worldX: float, worldZ: flo
 }
 
 // Attempt to place dragged cards at the drop position.
-export function handleDragEnd(state: SolitaireState, worldX: float, worldZ: float): void {
+export function handleDragEnd(state: SolitaireState, worldX: float, worldZ: float): bool {
   if !state.isDragging || state.selectedPileType < 0 {
-    return
+    return false
   }
 
   dragged := collectDraggedCardIndices(state)
 
   if dragged.length == 0 {
     cancelSelection(state)
-    return
+    return false
   }
 
   bottomCardIdx := dragged[0]
   if bottomCardIdx < 0 || bottomCardIdx >= state.cards.length {
     cancelSelection(state)
-    return
+    return false
   }
 
   bottomCard := state.cardInfo[bottomCardIdx]
@@ -395,6 +394,7 @@ export function handleDragEnd(state: SolitaireState, worldX: float, worldZ: floa
 
   updateCardPositions(state)
   cancelSelection(state)
+  return placed
 }
 
 // Clear selection/drag state.

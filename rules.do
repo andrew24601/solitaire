@@ -86,10 +86,12 @@ export function tryRevealTopCard(state: SolitaireState, pile: Pile): void {
 // --- Deal from stock ---
 
 // Deal one card from stock to waste, or recycle the waste back to stock.
-export function dealFromStock(state: SolitaireState): void {
-  if state.dealAnimActive { return }
+export function dealFromStock(state: SolitaireState): bool {
+  if state.dealAnimActive { return false }
 
   if state.stock.isEmpty() {
+    if state.waste.isEmpty() { return false }
+
     // Recycle: reverse waste back to stock, all face-down
     recycled: int[] := []
     for let i = state.waste.cardIndices.length - 1; i >= 0; i -= 1 {
@@ -104,10 +106,11 @@ export function dealFromStock(state: SolitaireState): void {
       state.cards[idx].currentRotation = 0.0f
     }
     updateCardPositions(state)
+    return true
   } else {
     // Deal one card from stock to waste with animation
     cardIdx := state.stock.popCard()
-    if cardIdx < 0 || cardIdx >= state.cards.length { return }
+    if cardIdx < 0 || cardIdx >= state.cards.length { return false }
     state.waste.cardIndices.push(cardIdx)
 
     card := state.cards[cardIdx]
@@ -129,6 +132,7 @@ export function dealFromStock(state: SolitaireState): void {
     card.flipTargetFaceUp = true
 
     updateCardPositions(state)
+    return true
   }
 }
 
@@ -198,8 +202,8 @@ function autoMoveDuration(state: SolitaireState): float {
 
 // Try to auto-move one card to a foundation. Called repeatedly after each
 // successful move to chain the animation.
-export function attemptAutoMove(state: SolitaireState): void {
-  if state.moveAnimActive || state.dealAnimActive { return }
+export function attemptAutoMove(state: SolitaireState): bool {
+  if state.moveAnimActive || state.dealAnimActive { return false }
 
   // Try waste pile first
   if !state.waste.isEmpty() {
@@ -215,7 +219,7 @@ export function attemptAutoMove(state: SolitaireState): void {
           state.waste.popCard()
           fPile.cardIndices.push(cardIdx)
           startMoveAnim(state, cardIdx, i, startX, startZ)
-          return
+          return true
         }
       }
     }
@@ -239,10 +243,12 @@ export function attemptAutoMove(state: SolitaireState): void {
         tryRevealTopCard(state, tab)
         fPile.cardIndices.push(cardIdx)
         startMoveAnim(state, cardIdx, i, startX, startZ)
-        return
+        return true
       }
     }
   }
+
+  return false
 }
 
 // --- Win detection ---

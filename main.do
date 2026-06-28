@@ -1,4 +1,4 @@
-import { createApp, appNewGame, appClick, appDragStart, appDragMove, appDragEnd, appCancelInteraction, appUpdate, appAutoComplete, appIsWon } from "./app-state"
+import { createApp, appNewGame, appClick, appDragStart, appDragMove, appDragEnd, appCancelInteraction, appUpdate, appAutoComplete, appCanUndo, appUndo, appIsWon } from "./app-state"
 import { Pile, SolitaireState } from "./game"
 import { abs, cos, PI, sin, sqrt } from "std/math"
 import {
@@ -55,25 +55,28 @@ const CARD_INSTANCE_COUNT: int = 52
 const PLACEHOLDER_INSTANCE_COUNT: int = 12
 const ATLAS_UV_SCALE_X: double = 1.0 / double(CARD_COLUMNS)
 const ATLAS_UV_SCALE_Y: double = 1.0 / double(CARD_ROWS)
-const RESTART_BUTTON_SIZE: double = 80.0
-const RESTART_BUTTON_MARGIN: double = 18.0
+const UI_BUTTON_SIZE: double = 80.0
+const UI_BUTTON_MARGIN: double = 18.0
 const RESTART_SPIN_DURATION: float = 0.28f
+const UNDO_PULSE_DURATION: float = 0.22f
 
 class PointerState {
   down: bool = false
   dragging: bool = false
-  uiPress: bool = false
+  uiPressKind: int = 0
   startX: double = 0.0
   startY: double = 0.0
 }
 
-class RestartButton {
+class CircleButton {
   x: double = 0.0
   y: double = 0.0
   size: double = 80.0
+  enabled: bool = true
   hovered: bool = false
   pressed: bool = false
   spinTimeRemaining: float = 0.0f
+  pulseTimeRemaining: float = 0.0f
 }
 
 class BoardBounds {
@@ -203,25 +206,30 @@ function clampToSurface(point: Point, width: double, height: double): Point {
   )
 }
 
-function layoutRestartButton(surface: GameSurface, button: RestartButton): void {
-  button.x = double(surface.width()) - button.size - RESTART_BUTTON_MARGIN
-  button.y = RESTART_BUTTON_MARGIN
+function layoutRestartButton(surface: GameSurface, button: CircleButton): void {
+  button.x = double(surface.width()) - button.size - UI_BUTTON_MARGIN
+  button.y = UI_BUTTON_MARGIN
 }
 
-function restartHitTest(button: RestartButton, point: Point): bool {
+function layoutUndoButton(button: CircleButton): void {
+  button.x = UI_BUTTON_MARGIN
+  button.y = UI_BUTTON_MARGIN
+}
+
+function buttonHitTest(button: CircleButton, point: Point): bool {
   return point.x >= button.x && point.x <= button.x + button.size &&
     point.y >= button.y && point.y <= button.y + button.size
 }
 
-function updateRestartHover(button: RestartButton, point: Point): void {
-  button.hovered = restartHitTest(button, point)
+function updateButtonHover(button: CircleButton, point: Point): void {
+  button.hovered = button.enabled && buttonHitTest(button, point)
   if button.pressed && !button.hovered {
     button.pressed = false
   }
 }
 
-function pressRestartButton(button: RestartButton, point: Point): bool {
-  updateRestartHover(button, point)
+function pressCircleButton(button: CircleButton, point: Point): bool {
+  updateButtonHover(button, point)
   if button.hovered {
     button.pressed = true
     return true
@@ -229,35 +237,54 @@ function pressRestartButton(button: RestartButton, point: Point): bool {
   return false
 }
 
-function releaseRestartButton(button: RestartButton, point: Point): bool {
+function releaseCircleButton(button: CircleButton, point: Point): bool {
   wasPressed := button.pressed
-  updateRestartHover(button, point)
+  updateButtonHover(button, point)
   button.pressed = false
   if wasPressed && button.hovered {
-    button.spinTimeRemaining = RESTART_SPIN_DURATION
     return true
   }
   return false
 }
 
-function updateRestartButton(button: RestartButton, deltaTime: float): bool {
-  if button.spinTimeRemaining <= 0.0f {
-    return false
+function updateCircleButton(button: CircleButton, deltaTime: float): bool {
+  let animating = false
+
+  if button.spinTimeRemaining > 0.0f {
+    button.spinTimeRemaining = button.spinTimeRemaining - deltaTime
+    if button.spinTimeRemaining < 0.0f {
+      button.spinTimeRemaining = 0.0f
+    }
+    animating = button.spinTimeRemaining > 0.0f
   }
-  button.spinTimeRemaining = button.spinTimeRemaining - deltaTime
-  if button.spinTimeRemaining < 0.0f {
-    button.spinTimeRemaining = 0.0f
+
+  if button.pulseTimeRemaining > 0.0f {
+    button.pulseTimeRemaining = button.pulseTimeRemaining - deltaTime
+    if button.pulseTimeRemaining < 0.0f {
+      button.pulseTimeRemaining = 0.0f
+    }
+    animating = animating || button.pulseTimeRemaining > 0.0f
   }
-  return button.spinTimeRemaining > 0.0f
+
+  return animating
 }
 
-function restartRotation(button: RestartButton): double {
+function restartRotation(button: CircleButton): double {
   if button.spinTimeRemaining <= 0.0f {
     return 0.0
   }
   progress := 1.0 - double(button.spinTimeRemaining) / double(RESTART_SPIN_DURATION)
   eased := 1.0 - (1.0 - progress) * (1.0 - progress)
   return PI * 2.0 * eased
+}
+
+function undoIconScale(button: CircleButton): double {
+  if button.pulseTimeRemaining <= 0.0f {
+    return 1.0
+  }
+  progress := 1.0 - double(button.pulseTimeRemaining) / double(UNDO_PULSE_DURATION)
+  wave := sin(progress * PI)
+  return 1.0 + wave * 0.12
 }
 
 function rotatedPoint(cx: double, cy: double, x: double, y: double, rotationCos: double, rotationSin: double): Point {
@@ -286,7 +313,10 @@ function addRestartQuad(builder: SimpleMeshBuilder, a: Point, b: Point, c: Point
   builder.triangle(ai, ci, di)
 }
 
-function restartButtonColor(button: RestartButton): Color {
+function circleButtonColor(button: CircleButton): Color {
+  if !button.enabled {
+    return Color(0.035, 0.10, 0.08, 0.42)
+  }
   if button.pressed {
     return Color(0.04, 0.13, 0.09, 0.95)
   }
@@ -296,22 +326,22 @@ function restartButtonColor(button: RestartButton): Color {
   return Color(0.045, 0.17, 0.11, 0.82)
 }
 
-function restartIconColor(button: RestartButton): Color {
+function circleIconColor(button: CircleButton): Color {
+  if !button.enabled {
+    return Color(0.78, 0.90, 0.78, 0.36)
+  }
   alpha := if button.pressed then 0.82 else 1.0
   return Color(0.94, 1.0, 0.90, alpha)
 }
 
-function createRestartButtonMesh(surface: GameSurface, button: RestartButton): SimpleMesh {
-  builder := SimpleMeshBuilder.create()
+function createCircleButtonBase(builder: SimpleMeshBuilder, button: CircleButton, z: double): void {
   cx := button.x + button.size * 0.5
   cy := button.y + button.size * 0.5
-  bgColor := restartButtonColor(button)
-  iconColor := restartIconColor(button)
+  bgColor := circleButtonColor(button)
   bgRadius := button.size * 0.5
   bgSegments := 36
-  z := 0.0
-
   center := Point(cx, cy)
+
   for let i = 0; i < bgSegments; i += 1 {
     a0 := PI * 2.0 * double(i) / double(bgSegments)
     a1 := PI * 2.0 * double(i + 1) / double(bgSegments)
@@ -324,6 +354,16 @@ function createRestartButtonMesh(surface: GameSurface, button: RestartButton): S
       z,
     )
   }
+}
+
+function createRestartButtonMesh(surface: GameSurface, button: CircleButton): SimpleMesh {
+  builder := SimpleMeshBuilder.create()
+  cx := button.x + button.size * 0.5
+  cy := button.y + button.size * 0.5
+  iconColor := circleIconColor(button)
+  z := 0.0
+
+  createCircleButtonBase(builder, button, z)
 
   r := button.size * 0.30
   thickness := button.size * 0.075
@@ -361,6 +401,44 @@ function createRestartButtonMesh(surface: GameSurface, button: RestartButton): S
   p1 := rotatedPoint(cx, cy, cx + c * r - tx * arrowSize * 0.5 + nx * arrowSize * 0.6, cy + s * r - ty * arrowSize * 0.5 + ny * arrowSize * 0.6, rotationCos, rotationSin)
   p2 := rotatedPoint(cx, cy, cx + c * r - tx * arrowSize * 0.5 - nx * arrowSize * 0.6, cy + s * r - ty * arrowSize * 0.5 - ny * arrowSize * 0.6, rotationCos, rotationSin)
   addRestartTriangle(builder, p0, p1, p2, iconColor, z + 0.01)
+
+  return builder.build(surface)
+}
+
+function createUndoButtonMesh(surface: GameSurface, button: CircleButton): SimpleMesh {
+  builder := SimpleMeshBuilder.create()
+  cx := button.x + button.size * 0.5
+  cy := button.y + button.size * 0.5
+  iconColor := circleIconColor(button)
+  z := 0.0
+
+  createCircleButtonBase(builder, button, z)
+
+  scale := undoIconScale(button)
+  shaftLength := button.size * 0.36 * scale
+  shaftHeight := button.size * 0.09 * scale
+  headLength := button.size * 0.22 * scale
+  headHeight := button.size * 0.28 * scale
+  left := cx - button.size * 0.24 * scale
+  right := left + shaftLength + headLength
+
+  addRestartQuad(
+    builder,
+    Point(left + headLength, cy - shaftHeight * 0.5),
+    Point(right, cy - shaftHeight * 0.5),
+    Point(right, cy + shaftHeight * 0.5),
+    Point(left + headLength, cy + shaftHeight * 0.5),
+    iconColor,
+    z + 0.01,
+  )
+  addRestartTriangle(
+    builder,
+    Point(left, cy),
+    Point(left + headLength, cy - headHeight * 0.5),
+    Point(left + headLength, cy + headHeight * 0.5),
+    iconColor,
+    z + 0.01,
+  )
 
   return builder.build(surface)
 }
@@ -890,7 +968,8 @@ function runSolitaire(): Result<void, string> {
   game := createApp()
   pointer := PointerState {}
   renderScene := createCardRenderScene(app.surface, atlas)
-  restartButton := RestartButton {}
+  undoButton := CircleButton {}
+  restartButton := CircleButton {}
   fireworks := Fireworks(app.surface)
   let wasWon = appIsWon(game)
   autoCamera := AutoCamera {}
@@ -898,6 +977,7 @@ function runSolitaire(): Result<void, string> {
     autoCamera,
     computeIdealAutoFrame(game.state, double(app.surface.width()), double(app.surface.height())),
   )
+  layoutUndoButton(undoButton)
   layoutRestartButton(app.surface, restartButton)
 
   app.key(Key.Escape).onPressed((): void => {
@@ -913,16 +993,31 @@ function runSolitaire(): Result<void, string> {
     wasWon = false
     app.requestRender()
   })
+  app.key(Key.Z).onPressed((): void => {
+    if appUndo(game) {
+      fireworks.clear()
+      wasWon = false
+      app.requestRender()
+    }
+  })
   app.key(Key.A).onPressed((): void => {
-    appAutoComplete(game)
-    app.requestRender()
+    if appAutoComplete(game) {
+      app.requestRender()
+    }
   })
 
   screenPointer := app.screenPointer()
   screenPointer.onPressed((point): void => {
     surfacePoint := clampToSurface(point, double(app.surface.width()), double(app.surface.height()))
-    pointer.uiPress = pressRestartButton(restartButton, surfacePoint)
-    if pointer.uiPress {
+    undoButton.enabled = appCanUndo(game)
+    if pressCircleButton(undoButton, surfacePoint) {
+      pointer.uiPressKind = 2
+    } else if pressCircleButton(restartButton, surfacePoint) {
+      pointer.uiPressKind = 1
+    } else {
+      pointer.uiPressKind = 0
+    }
+    if pointer.uiPressKind != 0 {
       pointer.down = false
       pointer.dragging = false
       app.requestRender()
@@ -935,9 +1030,11 @@ function runSolitaire(): Result<void, string> {
   })
   screenPointer.onMoved((point): void => {
     surfacePoint := clampToSurface(point, double(app.surface.width()), double(app.surface.height()))
-    updateRestartHover(restartButton, surfacePoint)
+    undoButton.enabled = appCanUndo(game)
+    updateButtonHover(undoButton, surfacePoint)
+    updateButtonHover(restartButton, surfacePoint)
     app.requestRender()
-    if !pointer.down || pointer.uiPress { return }
+    if !pointer.down || pointer.uiPressKind != 0 { return }
     width := double(app.surface.width())
     height := double(app.surface.height())
     world := perspectiveScreenToWorld(autoCamera, surfacePoint.x, surfacePoint.y, width, height)
@@ -958,24 +1055,36 @@ function runSolitaire(): Result<void, string> {
   })
   screenPointer.onReleased((point): void => {
     surfacePoint := clampToSurface(point, double(app.surface.width()), double(app.surface.height()))
-    if pointer.uiPress {
-      if releaseRestartButton(restartButton, surfacePoint) {
+    if pointer.uiPressKind != 0 {
+      undoButton.enabled = appCanUndo(game)
+      if pointer.uiPressKind == 1 && releaseCircleButton(restartButton, surfacePoint) {
+        restartButton.spinTimeRemaining = RESTART_SPIN_DURATION
         appNewGame(game)
         fireworks.clear()
         wasWon = false
         app.requestRender()
+      } else if pointer.uiPressKind == 2 && releaseCircleButton(undoButton, surfacePoint) {
+        if appUndo(game) {
+          undoButton.pulseTimeRemaining = UNDO_PULSE_DURATION
+          fireworks.clear()
+          wasWon = false
+          app.requestRender()
+        }
       }
       pointer.down = false
       pointer.dragging = false
-      pointer.uiPress = false
+      pointer.uiPressKind = 0
       return
     }
     width := double(app.surface.width())
     height := double(app.surface.height())
     world := perspectiveScreenToWorld(autoCamera, surfacePoint.x, surfacePoint.y, width, height)
     if pointer.dragging {
-      appDragEnd(game, float(world.x), float(world.y))
-      app.requestRender()
+      if appDragEnd(game, float(world.x), float(world.y)) {
+        app.requestRender()
+      } else {
+        app.requestRender()
+      }
     } else {
       if appClick(game, float(world.x), float(world.y)) {
         app.requestRender()
@@ -983,13 +1092,14 @@ function runSolitaire(): Result<void, string> {
     }
     pointer.down = false
     pointer.dragging = false
-    pointer.uiPress = false
+    pointer.uiPressKind = 0
   })
 
   app.onEvent((event): void => {
     if event.kind() == GameEventKind.CloseRequested {
       app.stop()
     } else if event.kind() == GameEventKind.Resized {
+      layoutUndoButton(undoButton)
       layoutRestartButton(app.surface, restartButton)
       app.requestRender()
     }
@@ -1005,7 +1115,10 @@ function runSolitaire(): Result<void, string> {
     }
     wasWon = won
     fireworksAnimating := fireworks.update(1.0 / 60.0)
-    buttonAnimating := updateRestartButton(restartButton, 1.0f / 60.0f)
+    undoButton.enabled = appCanUndo(game)
+    undoButtonAnimating := updateCircleButton(undoButton, 1.0f / 60.0f)
+    restartButtonAnimating := updateCircleButton(restartButton, 1.0f / 60.0f)
+    buttonAnimating := undoButtonAnimating || restartButtonAnimating
     updateCardRenderScene(renderScene, game.state)
     targetFrame := computeIdealAutoFrame(game.state, width, height)
     cameraMoving := updateAutoCamera(autoCamera, targetFrame, 1.0 / 60.0)
@@ -1050,6 +1163,7 @@ function runSolitaire(): Result<void, string> {
         blend: Blend.alpha(),
       },
       (pass): void => {
+        drawSimpleMesh(pass, createUndoButtonMesh(app.surface, undoButton))
         drawSimpleMesh(pass, createRestartButtonMesh(app.surface, restartButton))
         fireworks.draw(pass)
       },
