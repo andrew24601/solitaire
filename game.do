@@ -123,18 +123,18 @@ export class SolitaireState {
 }
 
 // Layout constants
-const TABLEAU_START_X: float = -400.0f
-const TABLEAU_SPACING: float = 100.0f
-const TABLEAU_Z: float = 100.0f
-const FOUNDATION_START_X: float = -100.0f
-const FOUNDATION_SPACING: float = 100.0f
-const FOUNDATION_Z: float = -50.0f
-const STOCK_X: float = -400.0f
-const STOCK_Z: float = -50.0f
-const WASTE_X: float = -300.0f
-const WASTE_Z: float = -50.0f
-export const CARD_VERTICAL_OFFSET: float = 20.0f
-const FACE_DOWN_OFFSET: float = 10.0f
+readonly TABLEAU_START_X: float = -400.0f
+readonly TABLEAU_SPACING: float = 100.0f
+readonly TABLEAU_Z: float = 100.0f
+readonly FOUNDATION_START_X: float = -100.0f
+readonly FOUNDATION_SPACING: float = 100.0f
+readonly FOUNDATION_Z: float = -50.0f
+readonly STOCK_X: float = -400.0f
+readonly STOCK_Z: float = -50.0f
+readonly WASTE_X: float = -300.0f
+readonly WASTE_Z: float = -50.0f
+export readonly CARD_VERTICAL_OFFSET: float = 20.0f
+readonly FACE_DOWN_OFFSET: float = 10.0f
 
 // Initialize a new solitaire game with a shuffled deck
 export function initializeGame(state: SolitaireState): void {

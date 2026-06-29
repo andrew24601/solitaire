@@ -5,13 +5,13 @@ import {
   Pile, SolitaireState, updateCardPositions,
   CARD_VERTICAL_OFFSET
 } from "./game"
-const PI: float = 3.14159265358979323846f
-const MOVE_BASE_LIFT: float = 18.0f
-const MOVE_ARC_LIFT: float = 24.0f
-const MOVE_SINGLE_DURATION: float = 0.20f
-const MOVE_SHORT_CHAIN_DURATION: float = 0.16f
-const MOVE_MEDIUM_CHAIN_DURATION: float = 0.12f
-const MOVE_LONG_CHAIN_DURATION: float = 0.09f
+readonly PI: float = 3.14159265358979323846f
+readonly MOVE_BASE_LIFT: float = 18.0f
+readonly MOVE_ARC_LIFT: float = 24.0f
+readonly MOVE_SINGLE_DURATION: float = 0.20f
+readonly MOVE_SHORT_CHAIN_DURATION: float = 0.16f
+readonly MOVE_MEDIUM_CHAIN_DURATION: float = 0.12f
+readonly MOVE_LONG_CHAIN_DURATION: float = 0.09f
 
 // --- Move validation ---
 

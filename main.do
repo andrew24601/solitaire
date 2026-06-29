@@ -32,35 +32,35 @@ import {
   initGameApp,
 } from "std/game"
 
-const CARD_COLUMNS: int = 14
-const CARD_ROWS: int = 4
-const CARD_WIDTH: double = 80.0
-const CARD_HEIGHT: double = 120.0
-const CLICK_THRESHOLD: double = 5.0
-const FOV_Y: double = 65.0 * (PI / 180.0)
-const CAMERA_DISTANCE: double = 700.0
-const CAMERA_NEAR: double = 400.0
-const CAMERA_FAR: double = 950.0
-const AUTO_CAMERA_MIN_PITCH: double = 1.0471976
-const AUTO_CAMERA_MAX_PITCH: double = 1.4765485
-const AUTO_CAMERA_MIN_DEPTH: double = 400.0
-const AUTO_CAMERA_MAX_DEPTH: double = 600.0
-const AUTO_CAMERA_VIEWPORT_USAGE: double = 0.96
-const AUTO_CAMERA_TOP_PADDING: double = 0.15
-const AUTO_CAMERA_MIN_SCALE: double = 0.5
-const AUTO_CAMERA_MAX_SCALE: double = 3.0
-const AUTO_CAMERA_SMOOTH_TIME: double = 0.28
-const DRAW_LAYER_STEP: double = 0.35
-const FLIP_LAYER_BONUS: int = 4
-const DRAG_LAYER_START: int = 32
-const CARD_INSTANCE_COUNT: int = 52
-const PLACEHOLDER_INSTANCE_COUNT: int = 12
-const ATLAS_UV_SCALE_X: double = 1.0 / double(CARD_COLUMNS)
-const ATLAS_UV_SCALE_Y: double = 1.0 / double(CARD_ROWS)
-const UI_BUTTON_SIZE: double = 80.0
-const UI_BUTTON_MARGIN: double = 18.0
-const RESTART_SPIN_DURATION: float = 0.28f
-const UNDO_PULSE_DURATION: float = 0.22f
+readonly CARD_COLUMNS: int = 14
+readonly CARD_ROWS: int = 4
+readonly CARD_WIDTH: double = 80.0
+readonly CARD_HEIGHT: double = 120.0
+readonly CLICK_THRESHOLD: double = 5.0
+readonly FOV_Y: double = 65.0 * (PI / 180.0)
+readonly CAMERA_DISTANCE: double = 700.0
+readonly CAMERA_NEAR: double = 400.0
+readonly CAMERA_FAR: double = 950.0
+readonly AUTO_CAMERA_MIN_PITCH: double = 1.0471976
+readonly AUTO_CAMERA_MAX_PITCH: double = 1.4765485
+readonly AUTO_CAMERA_MIN_DEPTH: double = 400.0
+readonly AUTO_CAMERA_MAX_DEPTH: double = 600.0
+readonly AUTO_CAMERA_VIEWPORT_USAGE: double = 0.96
+readonly AUTO_CAMERA_TOP_PADDING: double = 0.15
+readonly AUTO_CAMERA_MIN_SCALE: double = 0.5
+readonly AUTO_CAMERA_MAX_SCALE: double = 3.0
+readonly AUTO_CAMERA_SMOOTH_TIME: double = 0.28
+readonly DRAW_LAYER_STEP: double = 0.35
+readonly FLIP_LAYER_BONUS: int = 4
+readonly DRAG_LAYER_START: int = 32
+readonly CARD_INSTANCE_COUNT: int = 52
+readonly PLACEHOLDER_INSTANCE_COUNT: int = 12
+readonly ATLAS_UV_SCALE_X: double = 1.0 / double(CARD_COLUMNS)
+readonly ATLAS_UV_SCALE_Y: double = 1.0 / double(CARD_ROWS)
+readonly UI_BUTTON_SIZE: double = 80.0
+readonly UI_BUTTON_MARGIN: double = 18.0
+readonly RESTART_SPIN_DURATION: float = 0.28f
+readonly UNDO_PULSE_DURATION: float = 0.22f
 
 class PointerState {
   down: bool = false

@@ -11,8 +11,8 @@ import {
   startMoveAnim
 } from "./rules"
 
-const DRAW_PILE_HIT_PAD_X: float = 12.0f
-const DRAW_PILE_HIT_PAD_Z: float = 14.0f
+readonly DRAW_PILE_HIT_PAD_X: float = 12.0f
+readonly DRAW_PILE_HIT_PAD_Z: float = 14.0f
 
 function absFloat(value: float): float {
   return if value < 0.0f then -value else value
