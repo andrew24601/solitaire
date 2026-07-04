@@ -5,9 +5,9 @@ export enum Rank {
   Eight = 8, Nine = 9, Ten = 10, Jack = 11, Queen = 12, King = 13
 }
 
-export class PlayingCard {
-  suit: Suit = .Spades
-  rank: Rank = .Ace
+export struct PlayingCard {
+  readonly suit: Suit = .Spades
+  readonly rank: Rank = .Ace
 
   isRed(): bool => suit == .Hearts || suit == .Diamonds
   isBlack(): bool => suit == .Spades || suit == .Clubs
