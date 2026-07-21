@@ -21,6 +21,7 @@ import {
   Rotation,
   SimpleMesh,
   SimpleMeshBuilder,
+  SimpleMaterial,
   SimpleModelBatch,
   SimpleModelInstance,
   GameSurface,
@@ -152,14 +153,14 @@ function atlasScale(): Vec2 {
   return Vec2.xy(ATLAS_UV_SCALE_X, ATLAS_UV_SCALE_Y)
 }
 
-function includePoint(bounds: BoardBounds, x: double, z: double): void {
+function includePoint(bounds: BoardBounds, x: double, z: double): none {
   if x < bounds.minX { bounds.minX = x }
   if x > bounds.maxX { bounds.maxX = x }
   if z < bounds.minZ { bounds.minZ = z }
   if z > bounds.maxZ { bounds.maxZ = z }
 }
 
-function includeCard(bounds: BoardBounds, x: float, z: float): void {
+function includeCard(bounds: BoardBounds, x: float, z: float): none {
   includePoint(bounds, double(x) - CARD_WIDTH * 0.5, double(z) - CARD_HEIGHT * 0.5)
   includePoint(bounds, double(x) + CARD_WIDTH * 0.5, double(z) + CARD_HEIGHT * 0.5)
 }
@@ -208,12 +209,12 @@ function clampToSurface(point: Point, width: double, height: double): Point {
   )
 }
 
-function layoutRestartButton(surface: GameSurface, button: CircleButton): void {
+function layoutRestartButton(surface: GameSurface, button: CircleButton): none {
   button.x = double(surface.width()) - button.size - UI_BUTTON_MARGIN
   button.y = UI_BUTTON_MARGIN
 }
 
-function layoutUndoButton(button: CircleButton): void {
+function layoutUndoButton(button: CircleButton): none {
   button.x = UI_BUTTON_MARGIN
   button.y = UI_BUTTON_MARGIN
 }
@@ -223,7 +224,7 @@ function buttonHitTest(button: CircleButton, point: Point): bool {
     point.y >= button.y && point.y <= button.y + button.size
 }
 
-function updateButtonHover(button: CircleButton, point: Point): void {
+function updateButtonHover(button: CircleButton, point: Point): none {
   button.hovered = button.enabled && buttonHitTest(button, point)
   if button.pressed && !button.hovered {
     button.pressed = false
@@ -299,14 +300,14 @@ function addRestartVertex(builder: SimpleMeshBuilder, point: Point, color: Color
   return builder.vertex{ position: Point3(point.x, point.y, z), color }
 }
 
-function addRestartTriangle(builder: SimpleMeshBuilder, a: Point, b: Point, c: Point, color: Color, z: double): void {
+function addRestartTriangle(builder: SimpleMeshBuilder, a: Point, b: Point, c: Point, color: Color, z: double): none {
   ai := addRestartVertex(builder, a, color, z)
   bi := addRestartVertex(builder, b, color, z)
   ci := addRestartVertex(builder, c, color, z)
   builder.triangle(ai, bi, ci)
 }
 
-function addRestartQuad(builder: SimpleMeshBuilder, a: Point, b: Point, c: Point, d: Point, color: Color, z: double): void {
+function addRestartQuad(builder: SimpleMeshBuilder, a: Point, b: Point, c: Point, d: Point, color: Color, z: double): none {
   ai := addRestartVertex(builder, a, color, z)
   bi := addRestartVertex(builder, b, color, z)
   ci := addRestartVertex(builder, c, color, z)
@@ -336,7 +337,7 @@ function circleIconColor(button: CircleButton): Color {
   return Color(0.94, 1.0, 0.90, alpha)
 }
 
-function createCircleButtonBase(builder: SimpleMeshBuilder, button: CircleButton, z: double): void {
+function createCircleButtonBase(builder: SimpleMeshBuilder, button: CircleButton, z: double): none {
   cx := button.x + button.size * 0.5
   cy := button.y + button.size * 0.5
   bgColor := circleButtonColor(button)
@@ -359,7 +360,7 @@ function createCircleButtonBase(builder: SimpleMeshBuilder, button: CircleButton
 }
 
 function createRestartButtonMesh(surface: GameSurface, button: CircleButton): SimpleMesh {
-  builder := SimpleMeshBuilder.create()
+  builder := SimpleMeshBuilder()
   cx := button.x + button.size * 0.5
   cy := button.y + button.size * 0.5
   iconColor := circleIconColor(button)
@@ -408,7 +409,7 @@ function createRestartButtonMesh(surface: GameSurface, button: CircleButton): Si
 }
 
 function createUndoButtonMesh(surface: GameSurface, button: CircleButton): SimpleMesh {
-  builder := SimpleMeshBuilder.create()
+  builder := SimpleMeshBuilder()
   cx := button.x + button.size * 0.5
   cy := button.y + button.size * 0.5
   iconColor := circleIconColor(button)
@@ -549,7 +550,7 @@ function smoothDamp(
   return SmoothResult { value: result, velocity: newVelocity }
 }
 
-function applyAutoCameraFrame(camera: AutoCamera, frame: AutoCameraFrame): void {
+function applyAutoCameraFrame(camera: AutoCamera, frame: AutoCameraFrame): none {
   camera.targetX = frame.targetX
   camera.targetY = frame.targetY
   camera.targetZ = frame.targetZ
@@ -725,11 +726,11 @@ function orderedDraggedCards(state: SolitaireState): int[] {
   return dragged
 }
 
-function appendRenderItem(target: RenderItem[], item: RenderItem): void {
+function appendRenderItem(target: RenderItem[], item: RenderItem): none {
   target.push(item)
 }
 
-function appendCardItem(target: RenderItem[], state: SolitaireState, cardIndex: int, layer: int): void {
+function appendCardItem(target: RenderItem[], state: SolitaireState, cardIndex: int, layer: int): none {
   if cardIndex < 0 || cardIndex >= state.cards.length { return }
   card := state.cards[cardIndex]
   appendRenderItem(target, RenderItem {
@@ -848,8 +849,7 @@ function cardTransform(x: double, y: double, z: double, rotationRadians: double)
 function createCardFrontMesh(surface: GameSurface): SimpleMesh {
   halfW := CARD_WIDTH * 0.5
   halfH := CARD_HEIGHT * 0.5
-  return SimpleMeshBuilder
-    .create()
+  return SimpleMeshBuilder()
     .quad{
       a: Point3(-halfW, 0.0, halfH),
       b: Point3(halfW, 0.0, halfH),
@@ -867,8 +867,7 @@ function createCardFrontMesh(surface: GameSurface): SimpleMesh {
 function createCardBackMesh(surface: GameSurface): SimpleMesh {
   halfW := CARD_WIDTH * 0.5
   halfH := CARD_HEIGHT * 0.5
-  return SimpleMeshBuilder
-    .create()
+  return SimpleMeshBuilder()
     .quad{
       a: Point3(-halfW, 0.0, halfH),
       b: Point3(-halfW, 0.0, -halfH),
@@ -897,28 +896,34 @@ function createCardRenderScene(surface: GameSurface, atlas: Texture): CardRender
     rank := index % 13
     scene.frontInstances.push(fronts.add{
       transform: cardTransform(0.0, 0.0, 0.0, 0.0),
-      uvOffset: atlasCell(rank, suit),
-      uvScale,
+      material: SimpleMaterial {
+        uvOffset: atlasCell(rank, suit),
+        uvScale,
+      },
     })
     scene.backInstances.push(backs.add{
       transform: cardTransform(0.0, 0.0, 0.0, PI),
-      uvOffset: atlasCell(13, 0),
-      uvScale,
+      material: SimpleMaterial {
+        uvOffset: atlasCell(13, 0),
+        uvScale,
+      },
     })
   }
 
   for index of 0..<PLACEHOLDER_INSTANCE_COUNT {
     scene.placeholderInstances.push(placeholders.add{
       transform: cardTransform(0.0, 0.0, 0.0, 0.0),
-      uvOffset: atlasCell(13, 0),
-      uvScale,
+      material: SimpleMaterial {
+        uvOffset: atlasCell(13, 0),
+        uvScale,
+      },
     })
   }
 
   return scene
 }
 
-function updateCardInstance(scene: CardRenderScene, state: SolitaireState, cardIndex: int, layer: int): void {
+function updateCardInstance(scene: CardRenderScene, state: SolitaireState, cardIndex: int, layer: int): none {
   if cardIndex < 0 || cardIndex >= CARD_INSTANCE_COUNT || cardIndex >= state.cards.length { return }
   card := state.cards[cardIndex]
   renderLayer := if card.flipPhase != 0 then layer + FLIP_LAYER_BONUS else layer
@@ -936,21 +941,22 @@ function updateCardInstance(scene: CardRenderScene, state: SolitaireState, cardI
   )
 
   scene.frontInstances[cardIndex].setTransform(transform)
-  scene.frontInstances[cardIndex].setTint(Color.white)
   scene.backInstances[cardIndex].setTransform(transform)
-  scene.backInstances[cardIndex].setTint(Color.white)
 }
 
-function updatePlaceholderInstance(scene: CardRenderScene, item: RenderItem, layer: int, placeholderIndex: int): void {
+function updatePlaceholderInstance(scene: CardRenderScene, item: RenderItem, layer: int, placeholderIndex: int): none {
   if placeholderIndex < 0 || placeholderIndex >= PLACEHOLDER_INSTANCE_COUNT { return }
   instance := scene.placeholderInstances[placeholderIndex]
   layerLift := double(layer) * DRAW_LAYER_STEP
   instance.setTransform(cardTransform(double(item.x), layerLift, double(item.z), 0.0))
-  instance.setTint(Color(1.0, 1.0, 1.0, item.alpha))
-  instance.setUvOffset(atlasCell(item.column, item.row))
+  instance.setMaterial(SimpleMaterial {
+    tint: Color(1.0, 1.0, 1.0, item.alpha),
+    uvOffset: atlasCell(item.column, item.row),
+    uvScale: atlasScale(),
+  })
 }
 
-function updateCardRenderScene(scene: CardRenderScene, state: SolitaireState): void {
+function updateCardRenderScene(scene: CardRenderScene, state: SolitaireState): none {
   items := buildRenderItems(state)
   let placeholderIndex = 0
   for index of 0..<items.length {
@@ -964,7 +970,7 @@ function updateCardRenderScene(scene: CardRenderScene, state: SolitaireState): v
   }
 }
 
-function runSolitaire(): Result<void, string> {
+function runSolitaire(): Result<none, string> {
   app := initGameApp{
     title: "Doof Solitaire",
     renderMode: GameRenderMode.Requested,
@@ -990,34 +996,34 @@ function runSolitaire(): Result<void, string> {
   layoutUndoButton(undoButton)
   layoutRestartButton(app.surface, restartButton)
 
-  app.key(Key.Escape).onPressed((): void => {
+  app.key(Key.Escape).onPressed((): none => {
     if !appCancelInteraction(game) {
       app.stop()
     } else {
       app.requestRender()
     }
   })
-  app.key(Key.N).onPressed((): void => {
+  app.key(Key.N).onPressed((): none => {
     appNewGame(game)
     fireworks.clear()
     wasWon = false
     app.requestRender()
   })
-  app.key(Key.Z).onPressed((): void => {
+  app.key(Key.Z).onPressed((): none => {
     if appUndo(game) {
       fireworks.clear()
       wasWon = false
       app.requestRender()
     }
   })
-  app.key(Key.A).onPressed((): void => {
+  app.key(Key.A).onPressed((): none => {
     if appAutoComplete(game) {
       app.requestRender()
     }
   })
 
   screenPointer := app.screenPointer()
-  screenPointer.onPressed((point): void => {
+  screenPointer.onPressed((point): none => {
     surfacePoint := clampToSurface(point, double(app.surface.width()), double(app.surface.height()))
     undoButton.enabled = appCanUndo(game)
     if pressCircleButton(undoButton, surfacePoint) {
@@ -1038,7 +1044,7 @@ function runSolitaire(): Result<void, string> {
     pointer.startX = surfacePoint.x
     pointer.startY = surfacePoint.y
   })
-  screenPointer.onMoved((point): void => {
+  screenPointer.onMoved((point): none => {
     surfacePoint := clampToSurface(point, double(app.surface.width()), double(app.surface.height()))
     undoButton.enabled = appCanUndo(game)
     updateButtonHover(undoButton, surfacePoint)
@@ -1063,7 +1069,7 @@ function runSolitaire(): Result<void, string> {
       app.requestRender()
     }
   })
-  screenPointer.onReleased((point): void => {
+  screenPointer.onReleased((point): none => {
     surfacePoint := clampToSurface(point, double(app.surface.width()), double(app.surface.height()))
     if pointer.uiPressKind != 0 {
       undoButton.enabled = appCanUndo(game)
@@ -1105,7 +1111,7 @@ function runSolitaire(): Result<void, string> {
     pointer.uiPressKind = 0
   })
 
-  app.onEvent((event): void => {
+  app.onEvent((event): none => {
     if event.kind() == GameEventKind.CloseRequested {
       app.stop()
     } else if event.kind() == GameEventKind.Resized {
@@ -1115,7 +1121,7 @@ function runSolitaire(): Result<void, string> {
     }
   })
 
-  app.onRender((renderer): void => {
+  app.onRender((renderer): none => {
     animating := appUpdate(game, 1.0f / 60.0f)
     width := double(app.surface.width())
     height := double(app.surface.height())
@@ -1140,7 +1146,7 @@ function runSolitaire(): Result<void, string> {
         depth: Depth.readWrite(),
         blend: Blend.alpha()
       },
-      (pass): void => {
+      (pass): none => {
         drawSimpleModelBatch(pass, renderScene.placeholders)
       },
     )
@@ -1151,7 +1157,7 @@ function runSolitaire(): Result<void, string> {
         blend: Blend.alpha(),
         cull: CullMode.Back
       },
-      (pass): void => {
+      (pass): none => {
         drawSimpleModelBatch(pass, renderScene.backs)
       },
     )
@@ -1162,7 +1168,7 @@ function runSolitaire(): Result<void, string> {
         blend: Blend.alpha(),
         cull: CullMode.Back
       },
-      (pass): void => {
+      (pass): none => {
         drawSimpleModelBatch(pass, renderScene.fronts)
       },
     )
@@ -1172,7 +1178,7 @@ function runSolitaire(): Result<void, string> {
         depth: Depth.disabled(),
         blend: Blend.alpha(),
       },
-      (pass): void => {
+      (pass): none => {
         drawSimpleMesh(pass, createUndoButtonMesh(app.surface, undoButton))
         drawSimpleMesh(pass, createRestartButtonMesh(app.surface, restartButton))
         fireworks.draw(pass)
@@ -1197,4 +1203,5 @@ export function main(): int {
       return 1
     }
   }
+  return 0
 }

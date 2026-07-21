@@ -1,4 +1,4 @@
-// User interaction — click handling, drag-and-drop, card finding
+// User interaction - click handling, drag-and-drop, card finding
 
 import { PlayingCard, Card } from "./cards"
 import {
@@ -79,7 +79,7 @@ export function findCardAtPosition(state: SolitaireState, worldX: float, worldZ:
           hit.found = true
           return hit
         }
-        return hit  // Clicked face-down card — no hit
+        return hit  // Clicked face-down card â no hit
       }
     }
   }
@@ -128,7 +128,7 @@ export function findCardAtPosition(state: SolitaireState, worldX: float, worldZ:
       return hit
     }
   } else {
-    // Empty stock — click to recycle waste
+    // Empty stock â click to recycle waste
     if pointInPaddedPileSlot(
       worldX,
       worldZ,
@@ -247,7 +247,7 @@ function collectDraggedCardIndices(state: SolitaireState): int[] {
 }
 
 // Begin dragging from a clicked position.
-export function handleDragStart(state: SolitaireState, worldX: float, worldZ: float): void {
+export function handleDragStart(state: SolitaireState, worldX: float, worldZ: float): none {
   hit := findCardAtPosition(state, worldX, worldZ)
   if !hit.found { return }
 
@@ -274,7 +274,7 @@ export function handleDragStart(state: SolitaireState, worldX: float, worldZ: fl
 }
 
 // Update dragged card positions.
-export function handleDragMove(state: SolitaireState, worldX: float, worldZ: float): void {
+export function handleDragMove(state: SolitaireState, worldX: float, worldZ: float): none {
   if !state.isDragging || state.selectedPileType < 0 { return }
 
   dragged := collectDraggedCardIndices(state)
@@ -398,7 +398,7 @@ export function handleDragEnd(state: SolitaireState, worldX: float, worldZ: floa
 }
 
 // Clear selection/drag state.
-export function cancelSelection(state: SolitaireState): void {
+export function cancelSelection(state: SolitaireState): none {
   state.selectedPileType = -1
   state.selectedPileIndex = -1
   state.selectedCardIndex = -1

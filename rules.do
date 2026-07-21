@@ -63,7 +63,7 @@ export function canPlaceOnFoundation(
 
 // When the top card of a tableau pile is removed, check if the new
 // top card needs to be flipped face-up and start its flip animation.
-export function tryRevealTopCard(state: SolitaireState, pile: Pile): void {
+export function tryRevealTopCard(state: SolitaireState, pile: Pile): none {
   if pile.isEmpty() { return }
 
   newTopIdx := pile.cardIndices.length - 1
@@ -145,7 +145,7 @@ export function startMoveAnim(
   foundationIdx: int,
   startX: float,
   startZ: float
-): void {
+): none {
   if cardIdx < 0 || cardIdx >= state.cards.length { return }
   fPile := state.foundation(foundationIdx)
 
@@ -272,7 +272,7 @@ function easeInOutCubic(t: float): float {
   return 1.0f - (v * v * v) / 2.0f
 }
 
-function applyCardFlipPose(card: Card): void {
+function applyCardFlipPose(card: Card): none {
   if card.flipPhase == 1 {
     card.currentLift = card.flipLiftHeight * card.flipProgress
   } else if card.flipPhase == 2 {
@@ -289,7 +289,7 @@ function applyCardFlipPose(card: Card): void {
 }
 
 // Update the card flip animation for a single card
-export function updateCardFlip(card: Card, deltaTime: float): void {
+export function updateCardFlip(card: Card, deltaTime: float): none {
   if card.flipPhase == 0 { return }
 
   phaseDuration := card.flipDuration / 3.0f
@@ -320,8 +320,8 @@ export function updateCardFlip(card: Card, deltaTime: float): void {
   }
 }
 
-// Update the deal animation (stock → waste with flip)
-export function updateDealAnimation(state: SolitaireState, deltaTime: float): void {
+// Update the deal animation (stock â waste with flip)
+export function updateDealAnimation(state: SolitaireState, deltaTime: float): none {
   if !state.dealAnimActive { return }
   if state.dealCardIndex < 0 || state.dealCardIndex >= state.cards.length {
     state.dealAnimActive = false
@@ -356,7 +356,7 @@ export function updateDealAnimation(state: SolitaireState, deltaTime: float): vo
 }
 
 // Update the auto-move animation (card sliding to foundation)
-export function updateMoveAnimation(state: SolitaireState, deltaTime: float): void {
+export function updateMoveAnimation(state: SolitaireState, deltaTime: float): none {
   if !state.moveAnimActive { return }
   if state.moveCardIndex < 0 || state.moveCardIndex >= state.cards.length {
     state.moveAnimActive = false

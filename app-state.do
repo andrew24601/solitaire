@@ -1,4 +1,4 @@
-// Application state — wraps all game objects into a single root.
+// Application state - wraps all game objects into a single root.
 
 import { Card, PlayingCard } from "./cards"
 import { Pile, SolitaireState, initializeGame, updateCardPositions } from "./game"
@@ -81,7 +81,7 @@ function cloneSolitaireState(state: SolitaireState): SolitaireState {
   return copy
 }
 
-function clearInteractionAndAnimations(state: SolitaireState): void {
+function clearInteractionAndAnimations(state: SolitaireState): none {
   state.selectedPileType = -1
   state.selectedPileIndex = -1
   state.selectedCardIndex = -1
@@ -102,7 +102,7 @@ function clearInteractionAndAnimations(state: SolitaireState): void {
   }
 }
 
-function pushUndoSnapshot(app: AppState): void {
+function pushUndoSnapshot(app: AppState): none {
   app.undoHistory.push(cloneSolitaireState(app.state))
 }
 
@@ -117,7 +117,7 @@ export function createApp(): AppState {
 }
 
 // Start a new game, preserving camera and card library.
-export function appNewGame(app: AppState): void {
+export function appNewGame(app: AppState): none {
   app.state = SolitaireState {}
   app.undoHistory = []
   initializeGame(app.state)
@@ -152,11 +152,11 @@ export function appClick(app: AppState, worldX: float, worldZ: float): bool {
   return false
 }
 
-export function appDragStart(app: AppState, worldX: float, worldZ: float): void {
+export function appDragStart(app: AppState, worldX: float, worldZ: float): none {
   handleDragStart(app.state, worldX, worldZ)
 }
 
-export function appDragMove(app: AppState, worldX: float, worldZ: float): void {
+export function appDragMove(app: AppState, worldX: float, worldZ: float): none {
   handleDragMove(app.state, worldX, worldZ)
 }
 

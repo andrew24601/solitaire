@@ -3,7 +3,7 @@
 import { Suit, Rank, PlayingCard, Card, createDeck, cardId, cardBackId } from "./cards"
 import { randomInt } from "std/random"
 
-// A pile of cards — holds indices into the main cards array
+// A pile of cards â holds indices into the main cards array
 export class Pile {
   cardIndices: int[] = []
   firstFaceUpIndex: int = 0
@@ -33,7 +33,7 @@ export class Pile {
   }
 
   // Add multiple card indices
-  addCards(cards: int[]): void {
+  addCards(cards: int[]): none {
     for idx of cards {
       cardIndices.push(idx)
     }
@@ -41,7 +41,7 @@ export class Pile {
 }
 
 // Shuffle an array of ints in place using Fisher-Yates
-export function shuffle(arr: int[]): void {
+export function shuffle(arr: int[]): none {
   for let i = arr.length - 1; i > 0; i -= 1 {
     j := randomInt(i + 1)
     // Swap arr[i] and arr[j]
@@ -85,7 +85,7 @@ export class SolitaireState {
   dragOffsetX: float = 0.0f
   dragOffsetZ: float = 0.0f
 
-  // Deal animation state (stock → waste)
+  // Deal animation state (stock â waste)
   dealAnimActive: bool = false
   dealCardIndex: int = -1
   dealProgress: float = 0.0f
@@ -137,7 +137,7 @@ export readonly CARD_VERTICAL_OFFSET: float = 20.0f
 readonly FACE_DOWN_OFFSET: float = 10.0f
 
 // Initialize a new solitaire game with a shuffled deck
-export function initializeGame(state: SolitaireState): void {
+export function initializeGame(state: SolitaireState): none {
   // Create deck info
   state.cardInfo = createDeck()
 
@@ -216,7 +216,7 @@ export function initializeGame(state: SolitaireState): void {
 }
 
 // Update all card positions based on their pile membership
-export function updateCardPositions(state: SolitaireState): void {
+export function updateCardPositions(state: SolitaireState): none {
   // Tableau cards: stack with offset
   for i of 0..6 {
     pile := state.tableau(i)
