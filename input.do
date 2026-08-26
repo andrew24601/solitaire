@@ -20,10 +20,10 @@ function absFloat(value: float): float {
 
 // Result of finding a card at a screen position
 export class CardHit {
-  pileType: int = -1     // 0=tableau, 1=waste, 2=foundation, 3=stock
-  pileIndex: int = -1
-  cardIndex: int = -1    // Index within the pile's cardIndices
-  found: bool = false
+  let pileType: int = -1     // 0=tableau, 1=waste, 2=foundation, 3=stock
+  let pileIndex: int = -1
+  let cardIndex: int = -1    // Index within the pile's cardIndices
+  let found: bool = false
 }
 
 // Check if a point is inside a card's bounding rectangle

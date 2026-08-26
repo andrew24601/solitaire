@@ -8,8 +8,8 @@ import {
 } from "./input"
 
 export class AppState {
-  state: SolitaireState
-  undoHistory: SolitaireState[] = []
+  let state: SolitaireState
+  let undoHistory: SolitaireState[] = []
 }
 
 function cloneCard(card: Card): Card {

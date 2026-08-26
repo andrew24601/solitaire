@@ -56,67 +56,67 @@ readonly FLIP_LAYER_BONUS: int = 4
 readonly DRAG_LAYER_START: int = 32
 readonly CARD_INSTANCE_COUNT: int = 52
 readonly PLACEHOLDER_INSTANCE_COUNT: int = 12
-readonly ATLAS_UV_SCALE_X: double = 1.0 / double(CARD_COLUMNS)
-readonly ATLAS_UV_SCALE_Y: double = 1.0 / double(CARD_ROWS)
+readonly ATLAS_UV_SCALE_X: double = 0.07142857142857143
+readonly ATLAS_UV_SCALE_Y: double = 0.25
 readonly UI_BUTTON_SIZE: double = 80.0
 readonly UI_BUTTON_MARGIN: double = 18.0
 readonly RESTART_SPIN_DURATION: float = 0.28f
 readonly UNDO_PULSE_DURATION: float = 0.22f
 
 class PointerState {
-  down: bool = false
-  dragging: bool = false
-  uiPressKind: int = 0
-  startX: double = 0.0
-  startY: double = 0.0
+  let down: bool = false
+  let dragging: bool = false
+  let uiPressKind: int = 0
+  let startX: double = 0.0
+  let startY: double = 0.0
 }
 
 class CircleButton {
-  x: double = 0.0
-  y: double = 0.0
+  let x: double = 0.0
+  let y: double = 0.0
   size: double = 80.0
-  enabled: bool = true
-  hovered: bool = false
-  pressed: bool = false
-  spinTimeRemaining: float = 0.0f
-  pulseTimeRemaining: float = 0.0f
+  let enabled: bool = true
+  let hovered: bool = false
+  let pressed: bool = false
+  let spinTimeRemaining: float = 0.0f
+  let pulseTimeRemaining: float = 0.0f
 }
 
 class BoardBounds {
-  minX: double = 0.0
-  maxX: double = 0.0
-  minZ: double = 0.0
-  maxZ: double = 0.0
+  let minX: double = 0.0
+  let maxX: double = 0.0
+  let minZ: double = 0.0
+  let maxZ: double = 0.0
 }
 
 class AutoCameraFrame {
-  targetX: double = 0.0
-  targetY: double = 0.0
-  targetZ: double = 0.0
-  distance: double = 700.0
-  pitch: double = 1.28
-  scale: double = 1.45
-  panX: double = 0.0
-  panY: double = -0.08
+  let targetX: double = 0.0
+  let targetY: double = 0.0
+  let targetZ: double = 0.0
+  let distance: double = 700.0
+  let pitch: double = 1.28
+  let scale: double = 1.45
+  let panX: double = 0.0
+  let panY: double = -0.08
 }
 
 class AutoCamera {
-  targetX: double = 0.0
-  targetY: double = 0.0
-  targetZ: double = 0.0
-  distance: double = 700.0
-  pitch: double = 1.28
-  frameScale: double = 1.45
-  framePanX: double = 0.0
-  framePanY: double = -0.08
-  initialized: bool = false
+  let targetX: double = 0.0
+  let targetY: double = 0.0
+  let targetZ: double = 0.0
+  let distance: double = 700.0
+  let pitch: double = 1.28
+  let frameScale: double = 1.45
+  let framePanX: double = 0.0
+  let framePanY: double = -0.08
+  let initialized: bool = false
 
-  targetVelocityX: double = 0.0
-  targetVelocityZ: double = 0.0
-  pitchVelocity: double = 0.0
-  scaleVelocity: double = 0.0
-  panXVelocity: double = 0.0
-  panYVelocity: double = 0.0
+  let targetVelocityX: double = 0.0
+  let targetVelocityZ: double = 0.0
+  let pitchVelocity: double = 0.0
+  let scaleVelocity: double = 0.0
+  let panXVelocity: double = 0.0
+  let panYVelocity: double = 0.0
 }
 
 class SmoothResult {

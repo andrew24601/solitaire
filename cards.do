@@ -16,20 +16,20 @@ export struct PlayingCard {
 
 export class Card {
   cardId: string = ""
-  x: float = 0.0f
-  z: float = 0.0f
-  y: float = 0.0f
+  let x: float = 0.0f
+  let z: float = 0.0f
+  let y: float = 0.0f
   width: float = 80.0f
   height: float = 120.0f
-  faceUp: bool = true
-  currentLift: float = 0.0f
-  currentRotation: float = 0.0f
+  let faceUp: bool = true
+  let currentLift: float = 0.0f
+  let currentRotation: float = 0.0f
 
-  flipPhase: int = 0
-  flipProgress: float = 0.0f
+  let flipPhase: int = 0
+  let flipProgress: float = 0.0f
   flipLiftHeight: float = 80.0f
   flipDuration: float = 0.38f
-  flipTargetFaceUp: bool = true
+  let flipTargetFaceUp: bool = true
 }
 
 export function createDeck(): PlayingCard[] {

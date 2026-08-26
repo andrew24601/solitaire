@@ -5,10 +5,10 @@ import { randomInt } from "std/random"
 
 // A pile of cards â holds indices into the main cards array
 export class Pile {
-  cardIndices: int[] = []
-  firstFaceUpIndex: int = 0
-  x: float = 0.0f
-  z: float = 0.0f
+  let cardIndices: int[] = []
+  let firstFaceUpIndex: int = 0
+  let x: float = 0.0f
+  let z: float = 0.0f
 
   isEmpty(): bool => cardIndices.length == 0
 
@@ -53,8 +53,8 @@ export function shuffle(arr: int[]): none {
 
 // Full solitaire game state
 export class SolitaireState {
-  cards: Card[] = []
-  cardInfo: PlayingCard[] = []
+  let cards: Card[] = []
+  let cardInfo: PlayingCard[] = []
 
   // The seven tableau piles
   tableau0: Pile = Pile {}
@@ -78,31 +78,31 @@ export class SolitaireState {
   waste: Pile = Pile {}
 
   // Selection/drag state
-  selectedPileType: int = -1   // -1=none, 0=tableau, 1=waste, 2=foundation, 3=stock
-  selectedPileIndex: int = -1
-  selectedCardIndex: int = -1
-  isDragging: bool = false
-  dragOffsetX: float = 0.0f
-  dragOffsetZ: float = 0.0f
+  let selectedPileType: int = -1   // -1=none, 0=tableau, 1=waste, 2=foundation, 3=stock
+  let selectedPileIndex: int = -1
+  let selectedCardIndex: int = -1
+  let isDragging: bool = false
+  let dragOffsetX: float = 0.0f
+  let dragOffsetZ: float = 0.0f
 
   // Deal animation state (stock â waste)
-  dealAnimActive: bool = false
-  dealCardIndex: int = -1
-  dealProgress: float = 0.0f
-  dealStartX: float = 0.0f
-  dealStartZ: float = 0.0f
-  dealEndX: float = 0.0f
-  dealEndZ: float = 0.0f
+  let dealAnimActive: bool = false
+  let dealCardIndex: int = -1
+  let dealProgress: float = 0.0f
+  let dealStartX: float = 0.0f
+  let dealStartZ: float = 0.0f
+  let dealEndX: float = 0.0f
+  let dealEndZ: float = 0.0f
 
   // Move animation state (auto-move to foundation)
-  moveAnimActive: bool = false
-  moveCardIndex: int = -1
-  moveProgress: float = 0.0f
-  moveStartX: float = 0.0f
-  moveStartZ: float = 0.0f
-  moveEndX: float = 0.0f
-  moveEndZ: float = 0.0f
-  moveAnimDuration: float = 0.25f
+  let moveAnimActive: bool = false
+  let moveCardIndex: int = -1
+  let moveProgress: float = 0.0f
+  let moveStartX: float = 0.0f
+  let moveStartZ: float = 0.0f
+  let moveEndX: float = 0.0f
+  let moveEndZ: float = 0.0f
+  let moveAnimDuration: float = 0.25f
 
   // Access tableau by index
   tableau(i: int): Pile {
